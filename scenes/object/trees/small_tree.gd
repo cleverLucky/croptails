@@ -1,0 +1,108 @@
+#extends Sprite2D
+#
+#@onready var hurt_component: HurtComponent = $HurtComponent
+#@onready var damage_component: DamageComponent = $DamageComponent
+#
+#var log_scene = preload("res://scenes/object/trees/log.tscn")
+#
+#func _ready() -> void:
+	#hurt_component.hurt.connect(on_hurt)
+	#damage_component.max_damaged_reach.connect(on_max_damaged_reached)
+	#
+#func on_hurt(hit_damage: int) -> void:
+	#damage_component.apply_damage(hit_damage)
+#
+#func on_max_damaged_reached() -> void:
+	#print("max damaged reached")
+	#
+	## 方案1：先创建日志，再删除自己（推荐）
+	#create_log_before_free()
+	#
+	## 或者方案2：延迟删除
+	## call_deferred("create_log_before_free")
+#
+#func create_log_before_free() -> void:
+	## 1. 先保存需要的信息
+	#var spawn_position = global_position
+	#var parent = get_parent()
+	#
+	## 2. 实例化并添加新节点
+	#var log_instance = log_scene.instantiate() as Node2D
+	#log_instance.global_position = spawn_position
+	#
+	## 3. 确保添加到正确的父节点
+	#if parent and is_instance_valid(parent):
+		#parent.add_child(log_instance)
+	#else:
+		## 备用：添加到场景根节点
+		#get_tree().current_scene.add_child(log_instance)
+	#
+	## 4. 最后删除自己
+	#queue_free()
+	
+extends Sprite2D
+
+@onready var hurt_component: HurtComponent = $HurtComponent
+@onready var damage_component: DamageComponent = $DamageComponent
+
+var log_scene = preload("res://scenes/object/trees/log.tscn")
+var has_processed_max_damage = false  # 防止重复处理
+
+func _ready() -> void:
+	print("🌳 树初始化: ", name, " ID: ", get_instance_id())
+	
+	# 调试检查组件
+	if !hurt_component:
+		printerr("❌ 找不到 HurtComponent")
+		return
+		
+	if !damage_component:
+		printerr("❌ 找不到 DamageComponent")
+		return
+	
+	# 连接信号
+	hurt_component.hurt.connect(on_hurt)
+	damage_component.max_damaged_reach.connect(on_max_damaged_reached)
+	
+	print("✅ 信号连接完成")
+
+func on_hurt(hit_damage: int) -> void:
+	print("🪓 树受到伤害: ", name, " 伤害值: ", hit_damage)
+	damage_component.apply_damage(hit_damage)
+	material.set_shader_parameter("shake_intensity", 0.5)
+	await get_tree().create_timer(1.0).timeout
+	material.set_shader_parameter("shake_intensity", 0.0)
+
+func on_max_damaged_reached() -> void:
+	# 防止多次触发
+	if has_processed_max_damage:
+		print("⚠️ 已经处理过最大伤害，跳过")
+		return
+		
+	has_processed_max_damage = true
+	print("💥 达到最大伤害: ", name, " 位置: ", global_position)
+	
+	# 立即创建原木
+	create_log()
+	
+	# 延迟一帧后删除自己，确保原木先创建
+	await get_tree().process_frame
+	print("🗑️ 删除树节点: ", name)
+	queue_free()
+
+func create_log() -> void:
+	print("🪵 创建原木，树位置: ", global_position)
+	
+	# 获取父节点（确保在树删除前获取）
+	var parent = get_parent()
+	if not parent:
+		print("❌ 没有父节点，尝试添加到场景根节点")
+		parent = get_tree().current_scene
+	
+	if parent:
+		var log_instance = log_scene.instantiate() as Node2D
+		log_instance.global_position = global_position
+		parent.add_child(log_instance)
+		print("✅ 原木创建成功: ", log_instance.name)
+	else:
+		printerr("❌ 无法找到父节点添加原木")
