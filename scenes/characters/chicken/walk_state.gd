@@ -33,8 +33,10 @@ func _on_physics_process(delta:float) -> void:
 	var target_direction: Vector2 = character.global_position.direction_to(target_position)
 	animated_sprite_2d.flip_h = target_direction.x < 0
 	var velocity: Vector2 = target_direction * speed
+	
 	if navigation_agent_2d.avoidance_enabled:
 		navigation_agent_2d.velocity = velocity
+		animated_sprite_2d.flip_h = velocity.x < 0
 	else :
 		character.velocity = target_direction * speed
 		character.move_and_slide()
@@ -45,12 +47,13 @@ func _on_next_transitions() -> void:
 		transition.emit("Idle")
 	
 func on_safe_velocity_computed(safe_velocity: Vector2) -> void:
+	animated_sprite_2d.flip_h = safe_velocity.x < 0
 	character.velocity = safe_velocity
 	character.move_and_slide()	
 
 func _on_enter() -> void:
-	#pass
 	animated_sprite_2d.play("walk")
+	character.current_walk_state = 0
 	
 func _on_exit() -> void:
 	animated_sprite_2d.stop()
