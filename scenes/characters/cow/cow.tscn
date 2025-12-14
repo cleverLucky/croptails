@@ -59,6 +59,7 @@ radius = 7.0
 height = 26.060001
 
 [node name="Cow" type="CharacterBody2D"]
+collision_layer = 64
 script = ExtResource("1_ilrem")
 
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="."]
@@ -73,8 +74,11 @@ rotation = 1.5549828
 shape = SubResource("CapsuleShape2D_gsrfl")
 
 [node name="NavigationAgent2D" type="NavigationAgent2D" parent="."]
+path_desired_distance = 10.0
 navigation_layers = 2
+path_postprocessing = 1
 avoidance_enabled = true
+debug_enabled = true
 
 [node name="StaticMachine" type="Node" parent="." node_paths=PackedStringArray("initial_node_state")]
 script = ExtResource("3_j7g5r")
